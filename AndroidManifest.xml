@@ -15,6 +15,7 @@
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:theme="@style/AppTheme" >
+        <service android:name="SensorService" />
         <activity
             android:configChanges="keyboardHidden|orientation"
             android:screenOrientation="landscape"

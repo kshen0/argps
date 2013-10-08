@@ -1,29 +1,98 @@
 package net.kevinshen.argps;
 
+import java.util.List;
+
 import android.os.Bundle;
 import android.app.Activity;
+import android.content.Context;
 import android.hardware.Camera;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.util.Log;
+import android.widget.TextView;
 import android.widget.Toast;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements SensorEventListener {
 	private SurfaceView preview = null;
 	private SurfaceHolder previewHolder = null;
 	private Camera camera = null;
 	private boolean inPreview = false;
 	private boolean cameraConfigured = false;
+	private SensorManager sensorManager = null;
+	private Sensor accelSensor = null;
+	private Sensor orientationSensor = null;
+	private Sensor magSensor = null;
+	private TextView accelText;
+	private TextView orientationText;
+	float[] gravity = null;
+	float[] magField = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        //setContentView(R.layout.preview);
         setContentView(R.layout.activity_main);
 
+        // set up camera preview surface
         preview = (SurfaceView)findViewById(R.id.preview);
         previewHolder = preview.getHolder();
         previewHolder.addCallback(surfaceCallback);
+        
+        // set up sensor manager
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        initSensors();
+        accelText = (TextView)findViewById(R.id.accelText);
+        orientationText = (TextView)findViewById(R.id.orientationText);
+}
+    
+    public final void onAccuracyChanged(Sensor sensor, int accuracy) {
+    	// no op
+    }
+    
+    public final void onSensorChanged(SensorEvent event) {
+    	if (event.values == null) {
+    		return;
+    	}
+		String valStr = (int)event.values[0] + ", " + (int)event.values[1] + ", " + (int)event.values[2];
+		float[] R = new float[16];
+		float[] I = new float[16];
+		if (magField != null && gravity != null) {
+			if (sensorManager.getRotationMatrix(R, I, gravity, magField)) {
+				Log.i("MainActivity", "rotation matrix");
+			}
+
+		}
+    	if (event.sensor.getType() == event.sensor.TYPE_ACCELEROMETER) {
+    		gravity = event.values;
+    		valStr = "Accelerometer: " + valStr;
+    		accelText.setText(valStr);
+	    	Log.i("MainActivity", "Accelerometer: " + valStr); 
+    	}
+    	else if (event.sensor.getType() == event.sensor.TYPE_ORIENTATION) {
+    		valStr = "Orientation: " + valStr;
+			orientationText.setText(valStr);
+	    	Log.i("MainActivity", "Orientation sensor values: " + valStr); 
+    	}
+    	else if (event.sensor.getType() == event.sensor.TYPE_MAGNETIC_FIELD) {
+    		magField = event.values;
+    	}
+    }
+    
+    private void initSensors() {
+        List<Sensor> deviceSensors = sensorManager.getSensorList(Sensor.TYPE_ALL);
+    	if (sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null){
+    		accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+    	}
+    	if (sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) != null) {
+    		magSensor = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+    	}
+    	if (sensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION) != null){
+    		orientationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION);
+    	}
     }
     
     @Override
@@ -32,6 +101,10 @@ public class MainActivity extends Activity {
 
     	camera = Camera.open();
     	startPreview();
+    	
+    	sensorManager.registerListener(this, orientationSensor, SensorManager.SENSOR_DELAY_NORMAL);
+    	sensorManager.registerListener(this, accelSensor, SensorManager.SENSOR_DELAY_NORMAL);
+    	sensorManager.registerListener(this, magSensor, SensorManager.SENSOR_DELAY_NORMAL);
     }
     
     @Override public void onPause() {
@@ -42,6 +115,8 @@ public class MainActivity extends Activity {
 
     	camera.release();
     	camera = null;
+    	
+    	sensorManager.unregisterListener(this);
     	
     	super.onPause();
     }
