@@ -95,19 +95,8 @@ public class MainActivity extends Activity {
 			            Toast.makeText(MainActivity.this, t.getMessage(),
 	                    Toast.LENGTH_LONG).show();
 		        }
-		        /*
-		        // Set best size
-		        Camera.Parameters params = camera.getParameters();
-		        Camera.Size bestSize = null;
-		        int largestArea = -1;
-		        for (Camera.Size size : params.getSupportedPreviewSizes()) {
-		        	int area = size.height * size.width;
-		        	if (area > largestArea) {
-		        		largestArea = area;
-		        		bestSize = size;
-		        	}
-		        }
-		        */
+		        
+		        // configure preview size 
 		        if (!cameraConfigured) {
 			        Camera.Parameters params = camera.getParameters();
 			        Camera.Size bestSize = getBestPreviewSize(width, height, params);
